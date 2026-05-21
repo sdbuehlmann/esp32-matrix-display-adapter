@@ -1,25 +1,165 @@
 #include <Arduino.h>
+#include <ETH.h>
+#include <HTTPClient.h>
 
-// put function declarations here:
-int myFunction(int, int);
+#define ETH_ADDR        1
+#define ETH_POWER_PIN   -1
+#define ETH_MDC_PIN     23
+#define ETH_MDIO_PIN    18
+#define ETH_TYPE        ETH_PHY_LAN8720
+// #define ETH_CLK_MODE    ETH_CLOCK_GPIO0_IN
+#define ETH_CLK_MODE    ETH_CLOCK_GPIO0_OUT
 
-void setup() {
-  // put your setup code here, to run once:
-  Serial.begin(115200);
+IPAddress local_IP(192, 168, 0, 43);
+IPAddress gateway(192, 168, 0, 1);
+IPAddress subnet(255, 255, 255, 0);
 
-  int result = myFunction(2, 3);
+bool eth_connected = false;
 
-  Serial.print("Result: ");
-  Serial.println(result);
+const char* layoutPayload = R"(<?xml version="1.0" encoding="UTF-8"?>
+<MatrixDisplayService.RetrieveLayoutResponse>
+  <LayoutData>
+    <TimeStamp>
+      <Value>2024-06-01T12:00:00Z</Value>
+	</TimeStamp>
+	<Layout>
+	  <LayoutField>
+	    <X><Value>0</Value></X>
+		<Y><Value>0</Value></Y>
+		<Width><Value>48</Value></Width>
+		<Height><Value>26</Value></Height>
+		<ContentRef><Value>1</Value></ContentRef>
+	  </LayoutField>
+	</Layout>
+  </LayoutData>
+</MatrixDisplayService.RetrieveLayoutResponse>)";
+
+const char* contentPayload = R"(<?xml version="1.0" encoding="UTF-8"?>
+<MatrixDisplayService.RetrieveContentResponse>
+  <ContentData>
+    <TimeStamp><Value>1970-01-02T00:04:50.0</Value></TimeStamp>
+    <ContentRef><Value>1</Value></ContentRef>
+    <Content>
+      <ContentType>image/bmp</ContentType>
+      <Data>Qk0OAQAAAAAAAD4AAAAoAAAAMAAAABoAAAABAAEAAAAAAAAAAAAAAAAAAAAAAAIAAAACAAAAAAAA//////8AAAADAiAAAAAAAAYCIAAAAAAAB//gAAAAAAAMAgAAAAAAAAwCAAAAAAAA+A+AAAAAAAAYGOAAAAAAABAQIAAAAAAB8DewAAAAAAAgZBAAAAAAAABBGAAAAAAAAMAYAAAAAAAAnMgAAAAAAADAyAAAAAAAAEAIAAB6U194cDgAAEJSUUh//AAAQlZXSEAEAABD1FBISEQAAEJfUUhYxAAAQlFZSHzsAABCU19IZ6gAAHpeTkhjOAAAAAAAAEMYAAAAAAAAQRAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</Data>
+    </Content>
+  </ContentData>
+</MatrixDisplayService.RetrieveContentResponse>)";
+
+void postXml(const char* url, const char* payload) {
+    Serial.print("POST on ");
+    Serial.println(url);
+    Serial.println("Payload:");
+    Serial.println(payload);
+
+    HTTPClient http;
+
+    http.begin(url);
+    http.addHeader("Content-Type", "application/xml");
+
+    int httpCode = http.POST((uint8_t*)payload, strlen(payload));
+
+    Serial.println("-----------------------------------");
+    Serial.print("HTTP Code: ");
+    Serial.println(httpCode);
+
+    if (httpCode > 0)
+    {
+        String response = http.getString();
+
+        Serial.println("Response:");
+
+        if (response.length() > 0)
+        {
+            Serial.println(response);
+        }
+        else
+        {
+            Serial.println("(empty)");
+        }
+    }
+    else
+    {
+        Serial.print("POST failed: ");
+        Serial.println(http.errorToString(httpCode));
+    }
+
+    http.end();
 }
 
-void loop() {
-  // put your main code here, to run repeatedly:
-  Serial.print("Hello world!");
-  delay(1000);
+void WiFiEvent(WiFiEvent_t event)
+{
+    switch (event)
+    {
+        case ARDUINO_EVENT_ETH_START:
+          Serial.println("ETH Started");
+          ETH.setHostname("wt32");
+          break;
+
+        case ARDUINO_EVENT_ETH_GOT_IP:
+          Serial.print("ETH IP: ");
+          Serial.println(ETH.localIP());
+          eth_connected = true;
+          break;
+
+        case ARDUINO_EVENT_ETH_DISCONNECTED:
+          Serial.println("ETH disconnected");
+          eth_connected = false;
+          break;
+
+        default:
+          Serial.print("Unknown ETH event: ");
+          Serial.print(event);
+          break;
+    }
 }
 
-// put function definitions here:
-int myFunction(int x, int y) {
-  return x + y;
+void setup()
+{
+    Serial.begin(115200);
+
+    delay(10000);
+    Serial.println("Start booting..."); 
+
+    WiFi.onEvent(WiFiEvent);
+
+    ETH.begin(
+        ETH_ADDR,
+        ETH_POWER_PIN,
+        ETH_MDC_PIN,
+        ETH_MDIO_PIN,
+        ETH_TYPE,
+        ETH_CLK_MODE
+    );
+
+    delay(2000);   // WICHTIG beim WT32-ETH01
+
+    ETH.config(local_IP, gateway, subnet);
+
+    while (!eth_connected) {
+      Serial.println("Ethernet not yet ready");  
+      delay(1000);
+    }
+
+    Serial.println("Ethernet ready!");
+
+    Serial.println("Set layout...");
+    postXml("http://192.168.0.11:8080/RetrieveLayout", layoutPayload);
+
+    delay(2000);
+}
+
+void loop()
+{
+    if (eth_connected)
+    {
+        Serial.println("Set content...");
+        postXml("http://192.168.0.11:8080/RetrieveContent", contentPayload);
+    }
+    else
+    {
+        Serial.println("Ethernet not connected");
+    }
+
+    delay(5000);
 }

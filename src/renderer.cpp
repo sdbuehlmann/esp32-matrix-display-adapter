@@ -1,5 +1,7 @@
 #include <renderer.h>
 
+// Ensure the BMP headers are packed exactly as on-disk BMP format expects.
+#pragma pack(push, 1)
 struct BMPFileHeader
 {
     uint16_t bfType;      // "BM"
@@ -23,6 +25,7 @@ struct BMPInfoHeader
     uint32_t biClrUsed;
     uint32_t biClrImportant;
 };
+#pragma pack(pop)
 
 static inline uint32_t bmpRowSize(uint8_t width)
 {

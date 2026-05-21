@@ -320,11 +320,14 @@ static const Bitmap* fontGlyphs[128] = {
     nullptr, // 29
     nullptr, // 30
     nullptr, // 31
+    nullptr, // 32
     &bmp_33, // 33
     nullptr, // 34
     nullptr, // 35
+    nullptr, // 36
     &bmp_37, // 37
     nullptr, // 38
+    nullptr, // 39
     &bmp_40, // 40
     &bmp_41, // 41
     nullptr, // 42

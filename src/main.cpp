@@ -124,9 +124,24 @@ uint8_t buffer[512];
 void convert(char c) {
     Serial.println("######################################################");
     Serial.print("Convert to .bmp (Base64 encoded): ");
-    Serial.println(c);
+    Serial.print(c);
+    Serial.print(" (");
+    Serial.print((uint8_t)c);
+    Serial.println(")");
 
     const Bitmap* bmp = getBitmap(c);
+
+    for (size_t i = 0; i < sizeof(bmp->data); i++) {
+    uint8_t value = bmp->data[i];
+
+    if (value < 0x10) {
+      Serial.print("0");   // führende Null für 2-stellige HEX-Ausgabe
+    }
+
+    Serial.print(value, HEX);
+    Serial.print(" ");
+  }
+
     bool ok = BitmapToBMP(*bmp, buffer, sizeof(buffer));
 
     if (ok) {

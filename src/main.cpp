@@ -2,12 +2,17 @@
 #include <ETH.h>
 #include <HTTPClient.h>
 
+#include <font.h>
+#include <renderer.h>
+#include <base64.h>
+
 #define ETH_ADDR        1
 #define ETH_POWER_PIN   -1
 #define ETH_MDC_PIN     23
 #define ETH_MDIO_PIN    18
 #define ETH_TYPE        ETH_PHY_LAN8720
 // #define ETH_CLK_MODE    ETH_CLOCK_GPIO0_IN
+#undef ETH_CLK_MODE
 #define ETH_CLK_MODE    ETH_CLOCK_GPIO0_OUT
 
 IPAddress local_IP(192, 168, 0, 43);
@@ -114,12 +119,31 @@ void WiFiEvent(WiFiEvent_t event)
     }
 }
 
+uint8_t buffer[512];
+
 void setup()
 {
     Serial.begin(115200);
 
     delay(10000);
     Serial.println("Start booting..."); 
+
+    const Bitmap* bmp = getBitmap('A');
+    bool ok = BitmapToBMP(*bmp, buffer, sizeof(buffer));
+
+    if (ok) {
+        uint32_t rowSize = ((bmp->width + 7) / 8 + 3) & ~3u;
+        uint32_t bmpSize = 14 + 40 + 8 + rowSize * bmp->height;
+
+        char base64Buffer[128];
+        size_t base64Len = base64::encode(buffer, bmpSize, base64Buffer);
+        base64Buffer[base64Len] = '\0';
+
+        Serial.println("BMP converted to Base64:");
+        Serial.println(base64Buffer);
+    } else {
+        Serial.println("BMP conversion failed");
+    }
 
     WiFi.onEvent(WiFiEvent);
 

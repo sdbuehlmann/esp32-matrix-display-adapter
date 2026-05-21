@@ -90,19 +90,42 @@ bool BitmapToBMP(const Bitmap& src, uint8_t* outBuffer, uint32_t outSize)
     p += 8;
 
     // ===== PIXEL DATA =====
+    // Source format: bits packed linearly without row padding (35 bits for 5x7)
+    // Destination: standard BMP format with row padding to 4-byte boundaries
+    // BMP is bottom-up, so y=0 in dest corresponds to src.height-1 in src
+    
     memset(p, 0, pixelDataSize);
-
-    const uint8_t bytesPerRowSrc = (src.width + 7) / 8;
 
     for (uint8_t y = 0; y < src.height; y++)
     {
-        // BMP ist bottom-up
-        uint8_t srcRow = src.height - 1 - y;
-
-        uint8_t* dstRow = p + y * rowSize;
-        const uint8_t* srcRowPtr = src.data + srcRow * bytesPerRowSrc;
-
-        memcpy(dstRow, srcRowPtr, bytesPerRowSrc);
+        // BMP stores rows bottom-up
+        uint8_t bmp_y = src.height - 1 - y;
+        uint8_t* bmp_row = p + bmp_y * rowSize;
+        
+        for (uint8_t x = 0; x < src.width; x++)
+        {
+            // Calculate bit position in source data
+            uint32_t src_bit_index = y * src.width + x;
+            uint32_t src_byte_index = src_bit_index / 8;
+            uint8_t src_bit_in_byte = 7 - (src_bit_index % 8);
+            
+            // Extract bit from source
+            uint8_t bit_value = (src.data[src_byte_index] >> src_bit_in_byte) & 1;
+            
+            // Calculate bit position in BMP row
+            uint8_t bmp_byte_index = x / 8;
+            uint8_t bmp_bit_in_byte = 7 - (x % 8);
+            
+            // Write bit to BMP row
+            if (bit_value)
+            {
+                bmp_row[bmp_byte_index] |= (1 << bmp_bit_in_byte);
+            }
+            else
+            {
+                bmp_row[bmp_byte_index] &= ~(1 << bmp_bit_in_byte);
+            }
+        }
     }
 
     return true;

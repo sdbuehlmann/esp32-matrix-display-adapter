@@ -121,14 +121,12 @@ void WiFiEvent(WiFiEvent_t event)
 
 uint8_t buffer[512];
 
-void setup()
-{
-    Serial.begin(115200);
+void convert(char c) {
+    Serial.println("######################################################");
+    Serial.print("Convert to .bmp (Base64 encoded): ");
+    Serial.println(c);
 
-    delay(10000);
-    Serial.println("Start booting..."); 
-
-    const Bitmap* bmp = getBitmap('A');
+    const Bitmap* bmp = getBitmap(c);
     bool ok = BitmapToBMP(*bmp, buffer, sizeof(buffer));
 
     if (ok) {
@@ -139,11 +137,29 @@ void setup()
         size_t base64Len = base64::encode(buffer, bmpSize, base64Buffer);
         base64Buffer[base64Len] = '\0';
 
-        Serial.println("BMP converted to Base64:");
+        Serial.println("Result:");
         Serial.println(base64Buffer);
     } else {
-        Serial.println("BMP conversion failed");
+        Serial.println("!!BMP conversion failed!!");
     }
+
+    Serial.println("");
+}
+
+void setup()
+{
+    Serial.begin(115200);
+
+    delay(10000);
+    Serial.println("Start booting..."); 
+
+    convert('A');
+    convert('B');
+    convert('C');
+    convert('4');
+    convert('2');
+
+    delay(10000);
 
     WiFi.onEvent(WiFiEvent);
 

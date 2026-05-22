@@ -84,6 +84,7 @@ void postXml(const char* url, const char* payload) {
 
     http.begin(url);
     http.addHeader("Content-Type", "application/xml");
+    http.setTimeout(30000);
 
     int httpCode = http.POST((uint8_t*)payload, strlen(payload));
 
@@ -188,17 +189,9 @@ void convert(char c) {
 void setup()
 {
     Serial.begin(115200);
-
     delay(10000);
+
     Serial.println("Start booting..."); 
-
-    convert('A');
-    convert('B');
-    convert('C');
-    convert('4');
-    convert('2');
-
-    delay(10000);
 
     WiFi.onEvent(WiFiEvent);
 
@@ -226,44 +219,41 @@ void setup()
     postXml("http://192.168.0.11:8080/RetrieveLayout", layoutPayload);
 
     delay(2000);
-
-    grid.set(10, 10, true);
 }
 
 void loop()
 {
+    Serial.println("Loop start");
+
     if (eth_connected)
     {
-        Serial.println("Set content...");
+        grid.clear();
 
-        uint8_t value = random(65, 123);
-        Serial.println("Random value: " + String(value) + " (" + (char)value + ")");
+        grid.set(0,0,true);
+        //grid.set(1,1,true);
+        //grid.set(2,2,true);
+        //grid.set(3,3,true);
 
-        const Bitmap* bmp = getBitmap(value);
-        // bool ok = BitmapToBMP(*bmp, buffer, sizeof(buffer));
-        bool ok = true;
+        grid.addBitmap(2, 2, getBitmap(random(65, 123)));
+        grid.addBitmap(2 + 6, 2, getBitmap(random(65, 123)));
+        grid.addBitmap(2 + 6 + 6, 2, getBitmap(random(65, 123)));
+        grid.addBitmap(2 + 6 + 6 + 6, 2, getBitmap(random(65, 123)));
+
         uint32_t bmpSize = grid.toBMP(buffer);
 
-        if (ok) {
+        char base64Buffer[500];
+        size_t base64Len = base64::encode(buffer, bmpSize, base64Buffer);
 
-            char base64Buffer[500];
-            size_t base64Len = base64::encode(buffer, bmpSize, base64Buffer);
+        base64Buffer[base64Len] = '\0';
 
-            base64Buffer[base64Len] = '\0';
-
-            Serial.println("Result:");
-            Serial.println(base64Buffer);
-
-            String xml = createContentXml(base64Buffer);
-            postXml("http://192.168.0.11:8080/RetrieveContent", xml.c_str());
-        } else {
-            Serial.println("!!BMP conversion failed!!");
-        }   
+        String xml = createContentXml(base64Buffer);
+        postXml("http://192.168.0.11:8080/RetrieveContent", xml.c_str());
     }
     else
     {
         Serial.println("Ethernet not connected");
     }
 
-    delay(5000);
+    Serial.println("Loop finish");
+    delay(500);
 }

@@ -2,6 +2,7 @@
 
 #include <Arduino.h>
 #include <string.h>
+#include <types.h>
 
 template <uint8_t W, uint8_t H>
 class Grid
@@ -17,24 +18,46 @@ private:
 
 public:
     // =====================
-// Set bit
-// (0,0) is top-left
-//
-// (0,0) ---------> x (0..W)
-//  |
-//  |
-//  v
-// y (0..H)
-// =====================
+    // Set bit
+    // (0,0) is top-left
+    //
+    // (0,0) ---------> x (0..W)
+    //  |
+    //  |
+    //  v
+    // y (0..H)
+    // =====================
     void set(uint8_t x, uint8_t y, bool value)
     {
         if (x >= WIDTH || y >= HEIGHT) return;
 
         uint8_t& byte = data[y][x >> 3];
-        uint8_t mask = (1 << (x & 7));
+        uint8_t mask = 1 << (7 - (x & 7)); 
 
         if (value) byte |= mask;
         else       byte &= ~mask;
+    }
+
+    void addBitmap(uint8_t dstX, uint8_t dstY, const Bitmap* bitmap) {
+        if (!bitmap) return;
+
+        for (uint8_t y = 0; y < bitmap->height; y++) {
+            uint8_t targetY = dstY + y;
+
+            if (targetY >= HEIGHT) continue;
+
+            for (uint8_t x = 0; x < bitmap->width; x++) {
+                uint8_t targetX = dstX + x;
+                if (targetX >= WIDTH) continue;
+
+                uint32_t bitIndex = y * bitmap->width + x;
+                uint32_t byteIndex = bitIndex >> 3;
+                uint8_t  bitPos = 7 - (bitIndex & 7); // MSB first
+
+                bool pixel = bitmap->get(x, y);
+                set(targetX, targetY, pixel);
+            }
+        }
     }
 
     // =====================

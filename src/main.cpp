@@ -5,6 +5,7 @@
 #include <font.h>
 #include <renderer.h>
 #include <base64.h>
+#include <Grid.h>
 
 #define ETH_ADDR        1
 #define ETH_POWER_PIN   -1
@@ -142,6 +143,7 @@ void WiFiEvent(WiFiEvent_t event)
 }
 
 uint8_t buffer[512];
+Grid<48,26> grid;
 
 void convert(char c) {
     Serial.println("######################################################");
@@ -224,6 +226,8 @@ void setup()
     postXml("http://192.168.0.11:8080/RetrieveLayout", layoutPayload);
 
     delay(2000);
+
+    grid.set(10, 10, true);
 }
 
 void loop()
@@ -234,16 +238,17 @@ void loop()
 
         uint8_t value = random(65, 123);
         Serial.println("Random value: " + String(value) + " (" + (char)value + ")");
-        
+
         const Bitmap* bmp = getBitmap(value);
-        bool ok = BitmapToBMP(*bmp, buffer, sizeof(buffer));
+        // bool ok = BitmapToBMP(*bmp, buffer, sizeof(buffer));
+        bool ok = true;
+        uint32_t bmpSize = grid.toBMP(buffer);
 
-            if (ok) {
-            uint32_t rowSize = ((bmp->width + 7) / 8 + 3) & ~3u;
-            uint32_t bmpSize = 14 + 40 + 8 + rowSize * bmp->height;
+        if (ok) {
 
-            char base64Buffer[128];
+            char base64Buffer[500];
             size_t base64Len = base64::encode(buffer, bmpSize, base64Buffer);
+
             base64Buffer[base64Len] = '\0';
 
             Serial.println("Result:");

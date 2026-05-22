@@ -51,6 +51,28 @@ const char* contentPayload = R"(<?xml version="1.0" encoding="UTF-8"?>
   </ContentData>
 </MatrixDisplayService.RetrieveContentResponse>)";
 
+String createContentXml(const char* base64Image) {
+    String contentPayload =
+        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
+        "<MatrixDisplayService.RetrieveContentResponse>"
+        "  <ContentData>"
+        "    <TimeStamp><Value>1970-01-02T00:04:50.0</Value></TimeStamp>"
+        "    <ContentRef><Value>1</Value></ContentRef>"
+        "    <Content>"
+        "      <ContentType>image/bmp</ContentType>"
+        "      <Data>";
+
+    contentPayload += base64Image;
+
+    contentPayload +=
+        "</Data>"
+        "    </Content>"
+        "  </ContentData>"
+        "</MatrixDisplayService.RetrieveContentResponse>";
+
+    return contentPayload;
+}
+
 void postXml(const char* url, const char* payload) {
     Serial.print("POST on ");
     Serial.println(url);
@@ -209,7 +231,29 @@ void loop()
     if (eth_connected)
     {
         Serial.println("Set content...");
-        postXml("http://192.168.0.11:8080/RetrieveContent", contentPayload);
+
+        uint8_t value = random(65, 123);
+        Serial.println("Random value: " + String(value) + " (" + (char)value + ")");
+        
+        const Bitmap* bmp = getBitmap(value);
+        bool ok = BitmapToBMP(*bmp, buffer, sizeof(buffer));
+
+            if (ok) {
+            uint32_t rowSize = ((bmp->width + 7) / 8 + 3) & ~3u;
+            uint32_t bmpSize = 14 + 40 + 8 + rowSize * bmp->height;
+
+            char base64Buffer[128];
+            size_t base64Len = base64::encode(buffer, bmpSize, base64Buffer);
+            base64Buffer[base64Len] = '\0';
+
+            Serial.println("Result:");
+            Serial.println(base64Buffer);
+
+            String xml = createContentXml(base64Buffer);
+            postXml("http://192.168.0.11:8080/RetrieveContent", xml.c_str());
+        } else {
+            Serial.println("!!BMP conversion failed!!");
+        }   
     }
     else
     {

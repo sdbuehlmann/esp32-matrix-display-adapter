@@ -77,6 +77,10 @@ const Bitmap bmp_56 PROGMEM = {5, 7, char_56};
 // Character '9' (ASCII 57)
 const uint8_t char_57[] PROGMEM ={ 0x74, 0x62, 0xF0, 0x85, 0xC0 };
 const Bitmap bmp_57 PROGMEM = {5, 7, char_57};
+
+// Character ':' (ASCII 58)
+const uint8_t char_58[] PROGMEM ={ 0x00, 0x08, 0x02, 0x00, 0x00 };
+const Bitmap bmp_58 PROGMEM = {5, 7, char_58};
  
 // Character 'A' (ASCII 65)
 const uint8_t char_65[] PROGMEM ={ 0x74, 0x63, 0xF8, 0xC6, 0x20 };
@@ -346,7 +350,7 @@ static const Bitmap* fontGlyphs[128] = {
     &bmp_55, // 55
     &bmp_56, // 56
     &bmp_57, // 57
-    nullptr, // 58
+    &bmp_58, // 58
     nullptr, // 59
     nullptr, // 60
     nullptr, // 61

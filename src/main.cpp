@@ -101,6 +101,7 @@ void postXml(const char* url, const char* payload) {
 
     http.end();
 
+    delay(100); // avoid overload and give some time to clean up
     Serial.println("done!");
 }
 

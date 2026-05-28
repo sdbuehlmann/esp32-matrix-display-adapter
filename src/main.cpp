@@ -74,12 +74,6 @@ bool createContentXml(
 }
 
 void postXml(const char* url, const char* payload) {
-    WiFiClient client;
-
-    if (!client.connect("192.168.0.11", 8080, 30000)) {
-        Serial.println("Connect failed");
-        return;
-    }
 
     HTTPClient http;
 
@@ -88,7 +82,10 @@ void postXml(const char* url, const char* payload) {
     Serial.print(" ... ");
 
     http.begin(url);
+
     http.addHeader("Content-Type", "application/xml");
+    http.addHeader("Connection", "close");
+
     http.setTimeout(30000);
     http.setConnectTimeout(30000);
 
@@ -103,7 +100,6 @@ void postXml(const char* url, const char* payload) {
     }
 
     http.end();
-    client.stop();
 
     Serial.println("done!");
 }
